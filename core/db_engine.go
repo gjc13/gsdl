@@ -69,7 +69,9 @@ func (ctx *DbContext) GetTableNames() []string {
 		if err != nil {
 			return []string{}
 		}
-		result = append(result, metaPage.TableName)
+		if !metaPage.dropped() {
+			result = append(result, metaPage.TableName)
+		}
 		nowPgNumber = metaPage.NextTableMetaPgNumber
 	}
 	return result
@@ -85,7 +87,9 @@ func (ctx *DbContext) GetTableMetas() []*RowMeta {
 		if err != nil {
 			return []*RowMeta{}
 		}
-		result = append(result, metaPage.RowInfo)
+		if !metaPage.dropped() {
+			result = append(result, metaPage.RowInfo)
+		}
 		nowPgNumber = metaPage.NextTableMetaPgNumber
 	}
 	return result
