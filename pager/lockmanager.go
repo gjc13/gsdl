@@ -22,11 +22,11 @@ func (manager *lockManager) ensureFileLock(filename string) *sync.RWMutex {
 }
 
 func (manager *lockManager) AcquireLockShared(filename string) {
-	lock = manager.ensureFileLock(filename)
+	lock := manager.ensureFileLock(filename)
 	lock.RLock()
 }
 
-func (manager *lockManager) ReleaseLockShared(filename string) error {
+func (manager *lockManager) ReleaseLockShared(filename string) {
 	manager.mtx.Lock()
 	lock, ok := manager.filelocks[filename]
 	manager.mtx.Unlock()
@@ -37,7 +37,7 @@ func (manager *lockManager) ReleaseLockShared(filename string) error {
 }
 
 func (manager *lockManager) AcquireLockExlusive(filename string) {
-	lock = manager.ensureFileLock(filename)
+	lock := manager.ensureFileLock(filename)
 	lock.Lock()
 }
 
@@ -52,11 +52,13 @@ func (manager *lockManager) ReleaseLockExlusive(filename string) {
 }
 
 var lockManagerInstance *lockManager = nil
-var once sync.Once
+var onceLockManager sync.Once
 
 func getLockManger() *lockManager {
-	once.Do(func() {
-		lockManagerInstance = &lockManager()
+	onceLockManager.Do(func() {
+		lockManagerInstance = &lockManager{
+			filelocks: map[string]*sync.RWMutex{},
+		}
 	})
 	return lockManagerInstance
 }

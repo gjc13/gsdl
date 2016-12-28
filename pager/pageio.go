@@ -10,12 +10,12 @@ import (
 const PGSIZE uint32 = 4096
 
 type PageIOError struct {
-	string filename
-	string msg
+	filename string
+	msg      string
 }
 
-func (*PageIOError) Error() {
-	return fmt.Sprintf("%s: %s", filename, msg)
+func (err *PageIOError) Error() string {
+	return fmt.Sprintf("%s: %s", err.filename, err.msg)
 }
 
 func loadPage(filename string, pgNumber uint32) ([]byte, error) {
@@ -24,8 +24,8 @@ func loadPage(filename string, pgNumber uint32) ([]byte, error) {
 		return nil, err1
 	}
 	defer file.Close()
-	var data [PGSIZE]byte
-	_, err2 := file.ReadAt(data, PGSIZE*pgNumber)
+	data := make([]byte, PGSIZE)
+	_, err2 := file.ReadAt(data, int64(PGSIZE*pgNumber))
 	if err2 != nil {
 		return nil, err2
 	}
@@ -33,17 +33,18 @@ func loadPage(filename string, pgNumber uint32) ([]byte, error) {
 }
 
 func writePage(filename string, data []byte, pgNumber uint32) error {
-	if len(data) != PGSIZE {
+	if len(data) != int(PGSIZE) {
 		return &PageIOError{filename, "write data length can only be a page"}
 	}
-	file, err1 := os.OpenFile(filename, os.O_WRONLY, 0660)
+	file, err1 := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0660)
 	if err1 != nil {
 		return err1
 	}
 	defer file.Close()
-	_, err2 := file.WriteAt(data, PGSIZE*pgNumber)
+	_, err2 := file.WriteAt(data, int64(PGSIZE*pgNumber))
 	if err2 != nil {
 		err3 := appendPage(filename, pgNumber)
+		return err3
 	}
 	return nil
 }
@@ -51,12 +52,13 @@ func writePage(filename string, data []byte, pgNumber uint32) error {
 func writePageWithAppend(filename string, data []byte, pgNumber uint32) error {
 	err1 := writePage(filename, data, pgNumber)
 	if err1 == io.EOF {
-		err2 := appendPage(string, pgNumber)
+		err2 := appendPage(filename, pgNumber)
 		if err2 != nil {
 			return err2
 		}
 		return writePage(filename, data, pgNumber)
 	}
+	return nil
 }
 
 func appendPage(filename string, pgNumber uint32) error {
@@ -70,20 +72,20 @@ func appendPage(filename string, pgNumber uint32) error {
 		return err2
 	}
 	nowSize := info.Size()
-	if nowSize/PGSIZE > math.MaxUint32 {
+	if nowSize/int64(PGSIZE) > math.MaxUint32 {
 		return &PageIOError{filename, "number of pages bigger than uint32 limit"}
 	}
-	var nowPgNumber uint32 = uint32(nowSize/PGSIZE - 1)
+	var nowPgNumber uint32 = uint32(nowSize/int64(PGSIZE) - 1)
 	if pgNumber <= nowPgNumber {
 		return nil
 	}
-	err3 := file.Seek(0, os.SEEK_END)
+	_, err3 := file.Seek(0, os.SEEK_END)
 	if err3 != nil {
 		return err3
 	}
 	data := make([]byte, PGSIZE)
 	for i := nowPgNumber; i < pgNumber; i++ {
-		err4 := file.Write(data)
+		_, err4 := file.Write(data)
 		if err4 != nil {
 			return err4
 		}
@@ -97,7 +99,7 @@ func shrinkFile(filename string, targetNumberPages uint32) error {
 		return err1
 	}
 	defer file.Close()
-	return file.Truncate(targetNumberPages * PGSIZE)
+	return file.Truncate(int64(targetNumberPages * PGSIZE))
 }
 
 func createFile(filename string, targetNumberPages uint32) error {
