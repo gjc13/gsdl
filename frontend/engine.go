@@ -54,6 +54,8 @@ func (e *Engine) MetaCommandHandler(statement string) error {
 		err = e.CreateDbHandler(strings.Trim(statement[15:], " "))
 	case strings.HasPrefix(stmt, "drop database"):
 		err = e.DropDbHandler(strings.Trim(statement[13:], " "))
+	case strings.HasPrefix(stmt, "drop table"):
+		err = e.DropTableHandler(strings.Trim(statement[10:], " "))
 	case strings.HasPrefix(stmt, "use "):
 		err = e.UseDbHandler(strings.Trim(statement[3:], " "))
 	case strings.HasPrefix(stmt, "desc "):
@@ -81,6 +83,14 @@ func (e *Engine) DropDbHandler(dbname string) error {
 		e.ctx.EndUseDatabase()
 	}
 	return os.Remove(dbname)
+}
+
+func (e *Engine) DropTableHandler(tableName string) error {
+	if e.ctx == nil {
+		return ERR_STATEMENT
+		e.ctx.EndUseDatabase()
+	}
+	return e.ctx.DropTable(tableName)
 }
 
 func (e *Engine) UseDbHandler(dbname string) error {
