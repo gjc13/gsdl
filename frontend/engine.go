@@ -176,7 +176,6 @@ func (e *Engine) CreateTableHandler(stmt *sqlparser.CreateTable) error {
 		}
 		rowMeta.FieldMetas = append(rowMeta.FieldMetas, fmeta)
 	}
-	fmt.Println(colNames, rowMeta)
 	return e.ctx.CreateTable(tableName, colNames, rowMeta)
 }
 
