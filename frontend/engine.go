@@ -82,7 +82,7 @@ func (e *Engine) DropDbHandler(dbname string) error {
 	if e.ctx != nil {
 		e.ctx.EndUseDatabase()
 	}
-	return os.Remove(dbname)
+	return os.Remove(dbname + ".gsdl")
 }
 
 func (e *Engine) DropTableHandler(tableName string) error {
